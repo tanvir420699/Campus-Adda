@@ -293,8 +293,7 @@ function regStep2Next() {
 
   // Generate OTP (simulated)
   currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
-  console.log('📧 OTP (demo):', currentOtp); // In real app, send via email
-  showToast('কোড পাঠানো হয়েছে: ' + currentOtp + ' (Demo)');
+  showToast('✅ তোমার কোড: ' + currentOtp + ' — এটা লিখে দাও', 8000);
 
   showRegStep(3);
   startOtpTimer();
@@ -319,8 +318,7 @@ function startOtpTimer() {
 
 function resendOtp() {
   currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
-  console.log('📧 New OTP:', currentOtp);
-  showToast('নতুন কোড পাঠানো হয়েছে: ' + currentOtp + ' (Demo)');
+  showToast('✅ নতুন কোড: ' + currentOtp + ' — এটা লিখে দাও', 8000);
   startOtpTimer();
   document.getElementById('otpResendBtn').disabled = true;
 }
