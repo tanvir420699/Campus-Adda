@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Debendra Connect v14</title>
+  <meta name="theme-color" content="#6C63FF" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Debendra Connect" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- PWA Install Banner -->
+  <div id="pwaBanner" class="pwa-banner hidden">
+    <div class="banner-icon" style="background:#6C63FF22;">📲</div>
+    <div class="banner-text">
+      <div class="banner-title">Debendra Connect ইনস্টল করো</div>
+      <div class="banner-sub">হোম স্ক্রিনে যোগ করলে দ্রুত অ্যাক্সেস পাবে</div>
+    </div>
+    <div class="banner-actions">
+      <button class="banner-btn primary" onclick="installPWA()">ইনস্টল</button>
+      <button class="banner-btn secondary" onclick="dismissPwaBanner()">✕</button>
+    </div>
+  </div>
+
+  <!-- Push Notification Permission Banner -->
+  <div id="pushBanner" class="push-banner hidden">
+    <div class="banner-icon" style="background:#F7258522;">🔔</div>
+    <div class="banner-text">
+      <div class="banner-title">Push নোটিফিকেশন চালু করো</div>
+      <div class="banner-sub">লাইক, কমেন্ট ও mention এর তাৎক্ষণিক আপডেট পাবে</div>
+    </div>
+    <div class="banner-actions">
+      <button class="banner-btn primary" onclick="requestPushPermission()">চালু করো</button>
+      <button class="banner-btn secondary" onclick="dismissPushBanner()">পরে</button>
+    </div>
+  </div>
+
+  <!-- Live Push Toast -->
+  <div id="pushToast" class="push-toast hidden" onclick="this.classList.add('hide');setTimeout(()=>this.classList.add('hidden'),300)">
+    <div id="pushToastIcon" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:#6C63FF22;">🔔</div>
+    <div style="flex:1;min-width:0;">
+      <div id="pushToastTitle" style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px;">নোটিফিকেশন</div>
+      <div id="pushToastBody" style="font-size:11px;color:var(--text2);line-height:1.4;"></div>
+    </div>
+  </div>
+
+  <!-- Birthday Banner (dynamically shown) -->
+  <div id="birthdayBanner" class="birthday-banner hidden">
+    <div class="birthday-banner-icon">🎂</div>
+    <div class="birthday-banner-text">
+      <div class="birthday-banner-title" id="birthdayBannerTitle">আজ কারো জন্মদিন!</div>
+      <div class="birthday-banner-sub" id="birthdayBannerSub">উইশ করতে ভুলো না 🎉</div>
+    </div>
+    <button class="birthday-banner-close" onclick="document.getElementById('birthdayBanner').classList.add('hidden')">✕</button>
+  </div>
+
+  <!-- ===== NOTIFICATION FULL PAGE ===== -->
+  <div id="notifPage" class="notif-page hidden">
+    <div class="notif-page-header">
+      <button class="back-btn" onclick="closeNotifPage()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div class="notif-page-title">🔔 Notifications</div>
+      <button onclick="markAllNotifsRead()" style="background:none;border:none;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">সব পড়া</button>
+    </div>
+    <div class="notif-tabs">
+      <button class="notif-tab-btn active" id="ntab-all" onclick="setNotifTab('all')">সব</button>
+      <button class="notif-tab-btn" id="ntab-likes" onclick="setNotifTab('likes')">❤️ লাইক</button>
+      <button class="notif-tab-btn" id="ntab-comments" onclick="setNotifTab('comments')">💬 কমেন্ট</button>
+      <button class="notif-tab-btn" id="ntab-follow" onclick="setNotifTab('follow')">👥 Follow</button>
+      <button class="notif-tab-btn" id="ntab-birthday" onclick="setNotifTab('birthday')">🎂 জন্মদিন</button>
+    </div>
+    <div class="notif-page-body" id="notifPageBody"></div>
+  </div>
+
+  <!-- ===== FOLLOW MODAL (Followers/Following lists) ===== -->
+  <div id="followModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeFollowModal()">
+    <div class="modal-sheet" style="max-height:85vh;">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title" id="followModalTitle">Followers</span>
+        <div class="modal-close-btn" onclick="closeFollowModal()">✕</div>
+      </div>
+      <div id="followModalBody" style="padding:8px 0;max-height:70vh;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="logo-box">DC</div>
+      <div>
+        <div class="app-name">Debendra Connect</div>
+        <div class="app-sub">Govt. Debendra College · v14</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="search-wrap" onclick="openSearch()" style="cursor:pointer;">
+        <svg width="20" height="20" fill="none" stroke="var(--muted2)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <div class="notif-wrap" onclick="openNotif()">
+        <svg width="20" height="20" fill="none" stroke="var(--muted2)" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-badge" id="notifBadge">3</div>
+        <div class="notif-live-ring hidden" id="notifLiveRing"></div>
+      </div>
+      <div class="me-avatar" id="meAvatarHeader" onclick="switchTab('profile')">তু</div>
+    </div>
+  </div>
+
+  <!-- ===== CONTENT ===== -->
+  <div class="content">
+
+    <!-- FEED TAB -->
+    <div id="tab-feed">
+      <!-- Stories -->
+      <div class="stories-bar" id="storiesBar"></div>
+
+      <!-- Post Box -->
+      <div class="post-box-wrap">
+        <div class="post-box">
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <div id="postBoxAvatar" class="avatar" style="width:34px;height:34px;font-size:13px;flex-shrink:0;"></div>
+            <textarea class="post-textarea" id="newPostText" rows="2" placeholder="কিছু শেয়ার করো শুধু Debendra College এর জন্য..."></textarea>
+          </div>
+          <div id="attachedFileChip"></div>
+          <div id="postImgPreviewWrap"></div>
+          <div id="emojiPickerRow" class="emoji-row hidden">
+            <span class="emoji-btn" onclick="addEmoji('😊')">😊</span>
+            <span class="emoji-btn" onclick="addEmoji('❤️')">❤️</span>
+            <span class="emoji-btn" onclick="addEmoji('😂')">😂</span>
+            <span class="emoji-btn" onclick="addEmoji('🔥')">🔥</span>
+            <span class="emoji-btn" onclick="addEmoji('👍')">👍</span>
+            <span class="emoji-btn" onclick="addEmoji('🎓')">🎓</span>
+            <span class="emoji-btn" onclick="addEmoji('📚')">📚</span>
+            <span class="emoji-btn" onclick="addEmoji('💡')">💡</span>
+            <span class="emoji-btn" onclick="addEmoji('🙏')">🙏</span>
+            <span class="emoji-btn" onclick="addEmoji('😢')">😢</span>
+            <span class="emoji-btn" onclick="addEmoji('🤔')">🤔</span>
+            <span class="emoji-btn" onclick="addEmoji('✅')">✅</span>
+          </div>
+          <div class="post-tools">
+            <div class="tool-btn" onclick="document.getElementById('imgInput').click()" title="ছবি যোগ করো">📷</div>
+            <div class="tool-btn" onclick="document.getElementById('fileInput').click()" title="ফাইল যোগ করো">📎</div>
+            <div class="tool-btn" onclick="toggleEmojiPicker()" title="Emoji">😊</div>
+            <input type="file" id="imgInput" class="hidden" accept="image/*" onchange="handleImgSelect(event)" />
+            <input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(event)" />
+            <div style="flex:1;"></div>
+            <button class="post-btn" onclick="submitPost()">পোস্ট করো</button>
+          </div>
+          <div class="audience-row">
+            <span class="audience-label">👁️ দর্শক:</span>
+            <button class="audience-btn active" id="aud-public" onclick="setPostAudience('public')">🌍 সবাই</button>
+            <button class="audience-btn" id="aud-friends" onclick="setPostAudience('friends')">👥 ফ্রেন্ড</button>
+            <button class="audience-btn" id="aud-private" onclick="setPostAudience('private')">🔒 শুধু আমি</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dept-filter" id="deptFilter"></div>
+      <div id="postsContainer"></div>
+    </div>
+
+    <!-- MESSAGES TAB -->
+    <div id="tab-messages" class="hidden">
+      <div id="msgList">
+        <div class="msg-header">
+          <span>Messages</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="onlineCountTxt" style="font-size:11px;font-weight:600;color:var(--green);display:flex;align-items:center;gap:4px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;"></span>0 জন অনলাইন</span>
+            <button onclick="openNewGroupModal()" title="নতুন গ্রুপ মেসেজ" style="background:var(--bg3);border:1px solid var(--border2);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--accent);font-size:14px;">👥</button>
+          </div>
+        </div>
+        <div id="msgListItems"></div>
+      </div>
+      <div id="chatView" class="hidden chat-view">
+        <div class="chat-header">
+          <button class="back-btn" onclick="backToMsgList()">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </button>
+          <div class="avatar-wrap" style="cursor:pointer;" onclick="showChatInfo()">
+            <div id="chatAvatar" class="avatar" style="width:38px;height:38px;font-size:15px;"></div>
+            <div id="chatOnlineDot" class="online-dot hidden"></div>
+          </div>
+          <div style="flex:1;">
+            <div id="chatName" style="font-size:13px;font-weight:700;color:var(--text);"></div>
+            <div id="chatStatus" style="font-size:10px;color:var(--muted);"></div>
+          </div>
+          <button onclick="toggleChatSearch()" title="মেসেজ খোঁজো" style="background:none;border:none;cursor:pointer;color:var(--accent);padding:6px;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button onclick="videoCallUser()" title="Video Call" style="background:none;border:none;cursor:pointer;color:var(--accent);padding:6px;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          </button>
+          <button onclick="callUser()" style="background:none;border:none;cursor:pointer;color:var(--accent);padding:6px;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.18 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 5.49 5.49l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </button>
+          <button onclick="showChatInfo()" title="Chat Info" style="background:none;border:none;cursor:pointer;color:var(--muted2);padding:6px;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </button>
+        </div>
+        <div id="chatSearchBar" class="hidden" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border2);flex-shrink:0;">
+          <input id="chatSearchInput" type="text" placeholder="এই চ্যাটে খোঁজো..." oninput="runChatSearch(this.value)" style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:7px 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;">
+          <span id="chatSearchCount" style="font-size:10px;color:var(--muted);white-space:nowrap;"></span>
+          <button onclick="closeChatSearch()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <!-- Chat input area -->
+        <div class="chat-input-wrap" id="chatInputWrap">
+          <div id="replyBar" class="hidden" style="width:100%;">
+            <div class="reply-cancel-bar">
+              <span>↩️ Reply: </span><span class="r-name" id="replyToName"></span><span id="replyToText" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;"></span>
+              <button class="reply-cancel-btn" onclick="cancelReply()">✕</button>
+            </div>
+          </div>
+          <div class="chat-input-row" id="chatInputRow">
+            <button class="chat-tool-btn" onclick="toggleChatEmoji()" id="emojiToggleBtn">😊</button>
+            <button class="chat-tool-btn" onclick="document.getElementById('chatImgInput').click()" title="ছবি পাঠাও">📷</button>
+            <textarea class="chat-input-box" id="msgInput" placeholder="Message লেখো..." rows="1" onkeydown="chatKeyDown(event)" oninput="onChatInput(this)"></textarea>
+            <button class="chat-tool-btn voice-btn" id="voiceBtn" onclick="startVoiceRecord()" title="Voice message">🎙️</button>
+            <button class="send-btn" id="chatSendBtn" onclick="sendMessage()">
+              <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+          <!-- Image preview bar (hidden by default) -->
+          <div id="chatImgPreviewBar" class="hidden" style="width:100%;">
+            <div class="chat-img-preview-wrap">
+              <img id="chatImgPreviewThumb" src="" alt="">
+              <span style="font-size:11px;color:var(--muted);">ছবি পাঠানোর জন্য প্রস্তুত</span>
+              <button class="chat-img-preview-cancel" onclick="cancelChatImage()" title="বাতিল">✕</button>
+            </div>
+          </div>
+          <!-- Voice confirm bar (hidden by default) -->
+          <div id="voiceConfirmBar" class="hidden" style="width:100%;">
+            <div class="voice-confirm-bar">
+              <button class="vc-cancel-btn" onclick="cancelVoiceRecord()" title="বাতিল">🗑️</button>
+              <div class="voice-confirm-wave" id="vcWave"></div>
+              <span class="voice-timer-txt" id="vcTimer">0:00</span>
+              <button class="vc-send-btn" onclick="sendVoiceRecord()" title="পাঠাও">✅</button>
+            </div>
+            <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:4px;">✅ পাঠাও &nbsp;|&nbsp; 🗑️ বাতিল করো</div>
+          </div>
+          <div class="chat-emoji-picker hidden" id="chatEmojiPicker">
+            <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+              <span onclick="addChatEmoji('😊')">😊</span><span onclick="addChatEmoji('❤️')">❤️</span>
+              <span onclick="addChatEmoji('😂')">😂</span><span onclick="addChatEmoji('🔥')">🔥</span>
+              <span onclick="addChatEmoji('👍')">👍</span><span onclick="addChatEmoji('🙏')">🙏</span>
+              <span onclick="addChatEmoji('😢')">😢</span><span onclick="addChatEmoji('😍')">😍</span>
+              <span onclick="addChatEmoji('🤔')">🤔</span><span onclick="addChatEmoji('😎')">😎</span>
+              <span id="chatEmojiExpandBtn" onclick="toggleChatEmojiExpand()" style="font-size:18px;cursor:pointer;padding:4px 6px;border-radius:8px;background:var(--bg3);color:var(--text2);font-weight:bold;">+</span>
+            </div>
+            <div id="chatEmojiExtra" style="display:none;flex-wrap:wrap;gap:4px;margin-top:6px;">
+              <span onclick="addChatEmoji('🎓')">🎓</span><span onclick="addChatEmoji('📚')">📚</span>
+              <span onclick="addChatEmoji('💡')">💡</span><span onclick="addChatEmoji('✅')">✅</span>
+              <span onclick="addChatEmoji('🥳')">🥳</span><span onclick="addChatEmoji('😴')">😴</span>
+              <span onclick="addChatEmoji('👀')">👀</span><span onclick="addChatEmoji('💪')">💪</span>
+              <span onclick="addChatEmoji('🫡')">🫡</span><span onclick="addChatEmoji('🤝')">🤝</span>
+              <span onclick="addChatEmoji('🎉')">🎉</span><span onclick="addChatEmoji('😤')">😤</span>
+              <span onclick="addChatEmoji('🤩')">🤩</span><span onclick="addChatEmoji('😭')">😭</span>
+              <span onclick="addChatEmoji('🥺')">🥺</span><span onclick="addChatEmoji('😅')">😅</span>
+              <span onclick="addChatEmoji('🤣')">🤣</span><span onclick="addChatEmoji('😇')">😇</span>
+              <span onclick="addChatEmoji('🫶')">🫶</span><span onclick="addChatEmoji('👋')">👋</span>
+              <span onclick="addChatEmoji('🙌')">🙌</span><span onclick="addChatEmoji('🎯')">🎯</span>
+              <span onclick="addChatEmoji('💯')">💯</span><span onclick="addChatEmoji('⚡')">⚡</span>
+              <span onclick="addChatEmoji('🌟')">🌟</span><span onclick="addChatEmoji('💫')">💫</span>
+              <span onclick="addChatEmoji('🎁')">🎁</span><span onclick="addChatEmoji('🫠')">🫠</span>
+              <span onclick="addChatEmoji('😬')">😬</span><span onclick="addChatEmoji('🤯')">🤯</span>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="chatImgInput" class="hidden" accept="image/*" onchange="handleChatImgSelect(event)" />
+      </div>
+    </div>
+
+    <!-- GROUPS TAB -->
+    <div id="tab-groups" class="hidden">
+      <div id="groupsListView" class="pad-section">
+        <div class="section-title">
+          <span>Study Groups</span>
+          <button class="create-group-btn" onclick="openCreateGroup()">+ নতুন গ্রুপ</button>
+        </div>
+        <div id="groupsContainer"></div>
+      </div>
+      <div id="groupChatView" class="hidden group-chat-view">
+        <div class="chat-header">
+          <button class="back-btn" onclick="backToGroupsList()">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </button>
+          <div id="groupChatIcon" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;"></div>
+          <div style="flex:1;">
+            <div id="groupChatName" style="font-size:13px;font-weight:600;color:var(--text);"></div>
+            <div id="groupChatMembers" style="font-size:10px;color:var(--muted);"></div>
+          </div>
+          <button onclick="showGroupInfo()" style="background:none;border:none;cursor:pointer;color:var(--muted2);">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </button>
+        </div>
+        <!-- Group Tab Bar -->
+        <div class="group-tab-bar" style="display:none;">
+          <button class="group-tab-btn2 active" id="gTab-chat" onclick="switchGroupTab('chat')">💬 Chat</button>
+        </div>
+        <!-- Chat Section -->
+        <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+          <div class="chat-messages" id="groupChatMessages"></div>
+          <div class="chat-input-wrap" id="groupChatInputWrap">
+            <div class="reply-bar hidden" id="groupReplyBar" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg2);border-top:1px solid var(--border2);font-size:12px;color:var(--text2);">
+              <span>↩️ Reply: </span><span class="r-name" id="groupReplyToName"></span><span id="groupReplyToText" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;"></span>
+              <button class="reply-cancel-btn" onclick="cancelGroupReply()">✕</button>
+            </div>
+            <div class="chat-input-row" id="groupChatInputRow">
+              <button class="chat-tool-btn" onclick="toggleGroupChatEmoji()" id="groupEmojiToggleBtn">😊</button>
+              <button class="chat-tool-btn" onclick="document.getElementById('groupChatImgInput').click()" title="ছবি পাঠাও">📷</button>
+              <textarea class="chat-input-box" id="groupMsgInput" placeholder="গ্রুপে মেসেজ করো..." rows="1" onkeydown="groupChatKeyDown(event)" oninput="onGroupChatInput(this)"></textarea>
+              <button class="chat-tool-btn voice-btn" id="groupVoiceBtn" onclick="startGroupVoiceRecord()" title="Voice message">🎙️</button>
+              <button class="send-btn" onclick="sendGroupMessage()">
+                <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+            <!-- Image preview bar (hidden by default) -->
+            <div id="groupChatImgPreviewBar" class="hidden" style="width:100%;">
+              <div class="chat-img-preview-wrap">
+                <img id="groupChatImgPreviewThumb" src="" alt="">
+                <span style="font-size:11px;color:var(--muted);">ছবি পাঠানোর জন্য প্রস্তুত</span>
+                <button class="chat-img-preview-cancel" onclick="cancelGroupChatImage()" title="বাতিল">✕</button>
+              </div>
+            </div>
+            <!-- Voice confirm bar (hidden by default) -->
+            <div id="groupVoiceConfirmBar" class="hidden" style="width:100%;">
+              <div class="voice-confirm-bar">
+                <button class="vc-cancel-btn" onclick="cancelGroupVoiceRecord()" title="বাতিল">🗑️</button>
+                <div class="voice-confirm-wave" id="groupVcWave"></div>
+                <span class="voice-timer-txt" id="groupVcTimer">0:00</span>
+                <button class="vc-send-btn" onclick="sendGroupVoiceRecord()" title="পাঠাও">✅</button>
+              </div>
+              <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:4px;">✅ পাঠাও &nbsp;|&nbsp; 🗑️ বাতিল করো</div>
+            </div>
+            <div class="chat-emoji-picker hidden" id="groupChatEmojiPicker">
+              <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+                <span onclick="addGroupChatEmoji('😊')">😊</span><span onclick="addGroupChatEmoji('❤️')">❤️</span>
+                <span onclick="addGroupChatEmoji('😂')">😂</span><span onclick="addGroupChatEmoji('🔥')">🔥</span>
+                <span onclick="addGroupChatEmoji('👍')">👍</span><span onclick="addGroupChatEmoji('🙏')">🙏</span>
+                <span onclick="addGroupChatEmoji('😢')">😢</span><span onclick="addGroupChatEmoji('😍')">😍</span>
+                <span onclick="addGroupChatEmoji('🤔')">🤔</span><span onclick="addGroupChatEmoji('😎')">😎</span>
+                <span id="groupEmojiExpandBtn" onclick="toggleGroupEmojiExpand()" style="font-size:18px;cursor:pointer;padding:4px 6px;border-radius:8px;background:var(--bg3);color:var(--text2);font-weight:bold;">+</span>
+              </div>
+              <div id="groupEmojiExtra" style="display:none;flex-wrap:wrap;gap:4px;margin-top:6px;">
+                <span onclick="addGroupChatEmoji('🎓')">🎓</span><span onclick="addGroupChatEmoji('📚')">📚</span>
+                <span onclick="addGroupChatEmoji('💡')">💡</span><span onclick="addGroupChatEmoji('✅')">✅</span>
+                <span onclick="addGroupChatEmoji('🥳')">🥳</span><span onclick="addGroupChatEmoji('😴')">😴</span>
+                <span onclick="addGroupChatEmoji('👀')">👀</span><span onclick="addGroupChatEmoji('💪')">💪</span>
+                <span onclick="addGroupChatEmoji('🫡')">🫡</span><span onclick="addGroupChatEmoji('🤝')">🤝</span>
+                <span onclick="addGroupChatEmoji('🎉')">🎉</span><span onclick="addGroupChatEmoji('😤')">😤</span>
+                <span onclick="addGroupChatEmoji('🤩')">🤩</span><span onclick="addGroupChatEmoji('😭')">😭</span>
+                <span onclick="addGroupChatEmoji('🥺')">🥺</span><span onclick="addGroupChatEmoji('😅')">😅</span>
+                <span onclick="addGroupChatEmoji('🤣')">🤣</span><span onclick="addGroupChatEmoji('😇')">😇</span>
+                <span onclick="addGroupChatEmoji('🫶')">🫶</span><span onclick="addGroupChatEmoji('👋')">👋</span>
+                <span onclick="addGroupChatEmoji('🙌')">🙌</span><span onclick="addGroupChatEmoji('🎯')">🎯</span>
+                <span onclick="addGroupChatEmoji('💯')">💯</span><span onclick="addGroupChatEmoji('⚡')">⚡</span>
+                <span onclick="addGroupChatEmoji('🌟')">🌟</span><span onclick="addGroupChatEmoji('💫')">💫</span>
+                <span onclick="addGroupChatEmoji('🎁')">🎁</span><span onclick="addGroupChatEmoji('🫠')">🫠</span>
+                <span onclick="addGroupChatEmoji('😬')">😬</span><span onclick="addGroupChatEmoji('🤯')">🤯</span>
+              </div>
+            </div>
+          </div>
+          <input type="file" id="groupChatImgInput" class="hidden" accept="image/*" onchange="handleGroupChatImgSelect(event)" />
+        </div>
+        <!-- Feed Section -->
+        <div id="groupFeedContainer" class="hidden" style="flex:1;overflow-y:auto;padding-bottom:70px;">
+          <!-- Post box -->
+          <div style="padding:12px 16px 0;">
+            <div class="group-post-box">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <div id="groupPostAvatar" class="avatar" style="width:32px;height:32px;font-size:13px;flex-shrink:0;"></div>
+                <textarea class="post-textarea" id="groupPostInput" rows="2" placeholder="গ্রুপে কিছু শেয়ার করো..."></textarea>
+              </div>
+              <div id="groupPostImgPreview"></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                <div class="tool-btn" onclick="document.getElementById('groupPostImgIn').click()">📷</div>
+                <input type="file" id="groupPostImgIn" class="hidden" accept="image/*" onchange="handleGroupPostImg(event)" />
+                <div style="flex:1;"></div>
+                <button class="post-btn" onclick="submitGroupPost()">পোস্ট করো</button>
+              </div>
+            </div>
+          </div>
+          <div id="groupFeedPosts" style="padding-top:4px;"></div>
+        </div>
+        <!-- Feed input wrap (hidden by default) -->
+        <div id="groupFeedInputWrap" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- FRIENDS TAB -->
+    <div id="tab-friends" class="hidden pad-section">
+      <div class="section-title">
+        <span>Friends & Follow</span>
+        <button onclick="openSearch()" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;font-weight:600;font-family:inherit;">+ নতুন খুঁজুন</button>
+      </div>
+      <!-- Follow stats bar -->
+      <div style="display:flex;gap:10px;margin-bottom:14px;">
+        <div onclick="openFollowModal('followers')" style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px;text-align:center;cursor:pointer;">
+          <div style="font-size:18px;font-weight:800;color:var(--text);" id="friendTabFollowers">0</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Followers</div>
+        </div>
+        <div onclick="openFollowModal('following')" style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px;text-align:center;cursor:pointer;">
+          <div style="font-size:18px;font-weight:800;color:var(--text);" id="friendTabFollowing">0</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Following</div>
+        </div>
+        <div style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:var(--text);" id="friendTabFriends">0</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Friends</div>
+        </div>
+      </div>
+      <div id="friendSuggestionsSection"></div>
+      <div id="requestsSection"></div>
+      <div id="friendsSection"></div>
+    </div>
+
+    <!-- STUDY TAB -->
+    <div id="tab-study" class="hidden">
+      <div class="study-hub-header">
+        <div class="study-hub-title">📚 Study Hub</div>
+        <div class="study-hub-sub">নোট, রুটিন, কুইজ আর পড়াশোনার সব কিছু এক জায়গায়</div>
+      </div>
+      <div class="study-search-wrap">
+        <input type="text" class="study-search" id="studySearchInput" placeholder="🔍 সেকশন খুঁজো... (যেমন: নোট, রুটিন)" oninput="renderStudyHub()" />
+      </div>
+      <div id="studyHubContainer"></div>
+    </div>
+
+    <!-- PROFILE TAB -->
+    <div id="tab-profile" class="hidden">
+      <div class="profile-cover" id="profileCover">
+        <div id="coverBg" class="cover-gradient"></div>
+        <input type="file" id="coverPhotoInput" accept="image/*" style="display:none;" onchange="handleCoverPhotoUpload(this)">
+        <div style="position:absolute;bottom:8px;right:12px;display:flex;gap:6px;">
+          <div class="profile-cover-edit" onclick="document.getElementById('coverPhotoInput').click()">
+            <svg width="11" height="11" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            ছবি Upload
+          </div>
+          <div class="profile-cover-edit" onclick="changeCoverPhoto()">
+            <svg width="11" height="11" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Color
+          </div>
+        </div>
+      </div>
+      <div class="profile-head">
+        <div class="profile-avatar-big" id="profileAvatarBig" onclick="openEditProfile()">
+          <div class="profile-online-ring"></div>
+        </div>
+        <div class="profile-name-big" id="profileNameBig"></div>
+        <div class="profile-meta-row" id="profileMetaRow"></div>
+        <div class="profile-bio" id="profileBio"></div>
+        <div id="profileActivityBadge" style="margin:6px 0 2px;"></div>
+        <div class="profile-stats-row">
+          <div class="profile-stat" onclick="setProfileSubTab('posts')">
+            <div class="profile-stat-num" id="statPosts">0</div>
+            <div class="profile-stat-label">পোস্ট</div>
+          </div>
+          <div class="profile-stat" onclick="openFollowModal('followers')">
+            <div class="profile-stat-num" id="statFollowers">0</div>
+            <div class="profile-stat-label">Followers</div>
+          </div>
+          <div class="profile-stat" onclick="openFollowModal('following')">
+            <div class="profile-stat-num" id="statFollowing">0</div>
+            <div class="profile-stat-label">Following</div>
+          </div>
+          <div class="profile-stat" onclick="setProfileSubTab('friends')">
+            <div class="profile-stat-num" id="statFriends">0</div>
+            <div class="profile-stat-label">ফ্রেন্ড</div>
+          </div>
+          <div class="profile-stat" onclick="setProfileSubTab('saved')">
+            <div class="profile-stat-num" id="statSaved">0</div>
+            <div class="profile-stat-label">সেভড</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-num" id="statLikes">0</div>
+            <div class="profile-stat-label">লাইক</div>
+          </div>
+        </div>
+        <div class="profile-btn-row">
+          <button class="profile-edit-btn" onclick="openEditProfile()">✏️ প্রোফাইল এডিট</button>
+          <button class="profile-share-btn" onclick="copyProfileLink(0)">🔗 Share</button>
+        </div>
+      </div>
+      <div class="profile-tabs">
+        <button class="profile-tab-btn" id="ptab-about" onclick="setProfileSubTab('about')">তথ্য</button>
+        <button class="profile-tab-btn" id="ptab-posts" onclick="setProfileSubTab('posts')">পোস্ট</button>
+        <button class="profile-tab-btn" id="ptab-saved" onclick="setProfileSubTab('saved')">সেভ</button>
+        <button class="profile-tab-btn" id="ptab-friends" onclick="setProfileSubTab('friends')">ফ্রেন্ড</button>
+        <button class="profile-tab-btn" id="ptab-settings" onclick="setProfileSubTab('settings')">সেটিংস</button>
+      </div>
+      <div id="profileSubContent"></div>
+    </div>
+
+  </div>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <div class="bottom-nav">
+    <button class="nav-btn" onclick="switchTab('feed')" id="nav-feed">
+      <svg width="20" height="20" fill="none" stroke="#6C63FF" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="nav-label active">Feed</span>
+      <div class="nav-dot"></div>
+    </button>
+    <button class="nav-btn" onclick="switchTab('messages')" id="nav-messages">
+      <svg width="20" height="20" fill="none" stroke="#555B6E" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="nav-label">Messages</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('groups')" id="nav-groups">
+      <svg width="20" height="20" fill="none" stroke="#555B6E" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span class="nav-label">Groups</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('friends')" id="nav-friends">
+      <svg width="20" height="20" fill="none" stroke="#555B6E" stroke-width="2" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      <span class="nav-label">Friends</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('study')" id="nav-study">
+      <svg width="20" height="20" fill="none" stroke="#555B6E" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span class="nav-label">Study</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('profile')" id="nav-profile">
+      <svg width="20" height="20" fill="none" stroke="#555B6E" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-label">Profile</span>
+    </button>
+  </div>
+
+  <!-- ===== STUDY: NOTICEBOARD SUBPAGE ===== -->
+  <div id="studyNoticePage" class="study-subpage hidden">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeStudyPage('studyNoticePage')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">📌 Noticeboard</div>
+        <div style="font-size:10px;color:var(--muted);">কলেজ অফিসিয়াল নোটিস</div>
+      </div>
+    </div>
+    <div class="study-chip-row" id="noticeFilterRow"></div>
+    <div class="study-subpage-body" id="noticeListContainer" style="position:relative;"></div>
+    <button class="study-fab hidden" id="noticeFab" onclick="openAddNoticeModal()" title="নোটিস পোস্ট করো">+</button>
+  </div>
+
+  <!-- ===== STUDY: LOST & FOUND SUBPAGE ===== -->
+  <div id="studyLostFoundPage" class="study-subpage hidden">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeStudyPage('studyLostFoundPage')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">🔎 Lost &amp; Found</div>
+        <div style="font-size:10px;color:var(--muted);">কিছু হারিয়ে গেলে বা পেলে পোস্ট করো</div>
+      </div>
+    </div>
+    <div class="study-chip-row" id="lostFoundFilterRow"></div>
+    <div class="study-subpage-body" id="lostFoundListContainer" style="position:relative;"></div>
+    <button class="study-fab" onclick="openAddLostFoundModal()" title="পোস্ট করো">+</button>
+  </div>
+
+  <!-- ===== STUDY: EVENT PAGE SUBPAGE ===== -->
+  <div id="studyEventsPage" class="study-subpage hidden">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeStudyPage('studyEventsPage')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">🎉 Event Page</div>
+        <div style="font-size:10px;color:var(--muted);">কলেজ ইভেন্ট, সেমিনার ও কালচারাল প্রোগ্রাম</div>
+      </div>
+    </div>
+    <div class="study-chip-row" id="eventFilterRow"></div>
+    <div class="study-subpage-body" id="eventListContainer" style="position:relative;"></div>
+    <button class="study-fab hidden" id="eventFab" onclick="openAddEventModal()" title="ইভেন্ট যোগ করো">+</button>
+  </div>
+
+  <!-- ===== STUDY: CLUB SECTION SUBPAGE ===== -->
+  <div id="studyClubsPage" class="study-subpage hidden">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeStudyPage('studyClubsPage')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">🏛️ Club Section</div>
+        <div style="font-size:10px;color:var(--muted);">কলেজের সব ক্লাব এক জায়গায়</div>
+      </div>
+    </div>
+    <div class="study-subpage-body" id="clubsListContainer" style="position:relative;padding:6px 0 20px;"></div>
+  </div>
+
+  <!-- ===== STUDY: CLUB DETAIL SUBPAGE ===== -->
+  <div id="studyClubDetailPage" class="study-subpage hidden">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeClubDetail()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);" id="clubPageTitle"></div>
+        <div style="font-size:10px;color:var(--muted);" id="clubPageSub"></div>
+      </div>
+      <button id="clubJoinBtn" onclick="toggleClubJoin()" style="border:none;border-radius:14px;padding:6px 12px;font-size:10.5px;font-weight:700;cursor:pointer;font-family:inherit;"></button>
+    </div>
+    <div class="club-members-row" id="clubMembersRow"></div>
+    <div class="study-subpage-body" id="clubPostsContainer" style="position:relative;"></div>
+    <div class="club-post-bar">
+      <input type="text" id="clubPostInput" class="study-search" style="flex:1;" placeholder="ক্লাবে কিছু লেখো..." onkeydown="if(event.key==='Enter')submitClubPost()" />
+      <button onclick="submitClubPost()" class="lf-resolve-btn" style="white-space:nowrap;">পোস্ট</button>
+    </div>
+  </div>
+
+  <!-- ===== STUDY: BLOOD GROUP DIRECTORY SUBPAGE ===== -->
+  <div id="studyBloodPage" class="study-subpage hidden">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeStudyPage('studyBloodPage')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">🩸 Blood Group Directory</div>
+        <div style="font-size:10px;color:var(--muted);">ইমার্জেন্সিতে দ্রুত রক্তের গ্রুপ খুঁজে নাও</div>
+      </div>
+    </div>
+    <div class="study-search-wrap">
+      <input type="text" class="study-search" id="bloodSearchInput" placeholder="🔍 নাম, রোল বা ব্লাড গ্রুপ দিয়ে খুঁজো..." oninput="renderBloodList()" />
+    </div>
+    <div class="study-chip-row" id="bloodTypeFilter"></div>
+    <div class="dept-filter" id="bloodDeptFilter" style="padding:0 16px 10px;"></div>
+    <div class="blood-stat-bar">
+      <span class="blood-stat-bar-label">সব শিক্ষার্থীর ব্লাড গ্রুপ এক জায়গায়</span>
+      <span class="blood-stat-bar-count" id="bloodCountLabel">🩸 0 জন</span>
+    </div>
+    <div class="study-subpage-body" id="bloodListContainer" style="position:relative;"></div>
+  </div>
+
+  <!-- ===== STUDY: NOTES SHARING SUBPAGE ===== -->
+  <div id="studyNotesPage" class="study-subpage hidden">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeStudyPage('studyNotesPage')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">📝 Notes Sharing</div>
+        <div style="font-size:10px;color:var(--muted);">ডিপার্টমেন্ট অনুযায়ী নোট</div>
+      </div>
+    </div>
+    <div class="dept-filter" id="notesDeptFilter" style="padding:10px 16px;"></div>
+    <div class="study-subpage-body" id="notesListContainer" style="position:relative;"></div>
+    <button class="study-fab" onclick="openUploadNoteModal()" title="নোট আপলোড করো">+</button>
+  </div>
+
+  <!-- ===== STUDY: CLASS ROUTINE SUBPAGE ===== -->
+  <div id="studyRoutinePage" class="study-subpage hidden">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeStudyPage('studyRoutinePage')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">🗓️ Class Routine</div>
+        <div style="font-size:10px;color:var(--muted);">দৈনিক ক্লাস শিডিউল</div>
+      </div>
+      <button onclick="openEditRoutineModal()" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:11px;font-weight:600;font-family:inherit;">✏️ এডিট</button>
+    </div>
+    <div class="routine-day-pill-row" id="routineDayPillRow"></div>
+    <div class="study-subpage-body" id="routineListContainer"></div>
+  </div>
+
+  <!-- ===== STUDY: EXAM ROUTINE SUBPAGE ===== -->
+  <div id="studyExamPage" class="study-subpage hidden">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeStudyPage('studyExamPage')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">🗂️ Exam Routine</div>
+        <div style="font-size:10px;color:var(--muted);">পরীক্ষার তারিখ, সময় ও রুম</div>
+      </div>
+      <button onclick="openAddExamModal()" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:11px;font-weight:600;font-family:inherit;">+ যোগ করো</button>
+    </div>
+    <div class="study-subpage-body" id="examListContainer"></div>
+  </div>
+
+  <!-- ===== STUDY: QUIZ / MCQ SUBPAGE ===== -->
+  <div id="studyQuizPage" class="study-subpage hidden">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeQuizPage()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);" id="quizPageTitle">🧠 Quiz / MCQ Practice</div>
+        <div style="font-size:10px;color:var(--muted);" id="quizPageSub">সাবজেক্ট বেছে নিয়ে প্র্যাকটিস শুরু করো</div>
+      </div>
+    </div>
+    <div class="study-subpage-body" id="quizBodyContainer"></div>
+  </div>
+
+  <!-- ===== STUDY: VIDEO LECTURES SUBPAGE ===== -->
+  <div id="studyVideoPage" class="study-subpage hidden">
+    <div class="chat-header">
+      <button class="back-btn" onclick="closeStudyPage('studyVideoPage')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">🎬 Video Lectures</div>
+        <div style="font-size:10px;color:var(--muted);">ইউটিউব লেকচার লিংক</div>
+      </div>
+    </div>
+    <div class="dept-filter" id="videoDeptFilter" style="padding:10px 16px;"></div>
+    <div class="study-subpage-body" id="videoListContainer" style="position:relative;"></div>
+    <button class="study-fab" onclick="openAddVideoModal()" title="ভিডিও লিংক যোগ করো">+</button>
+  </div>
+
+  <!-- ===== STUDY: ADD NOTICE MODAL ===== -->
+  <div id="addNoticeModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeAddNoticeModal()">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title">📌 নোটিস পোস্ট করো</span>
+        <div class="modal-close-btn" onclick="closeAddNoticeModal()">✕</div>
+      </div>
+      <div style="padding:16px;">
+      <div class="form-group">
+        <label class="form-label">শিরোনাম</label>
+        <input type="text" class="form-input" id="noticeTitleInput" placeholder="যেমন: পরীক্ষার রুটিন প্রকাশিত" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">বিস্তারিত</label>
+        <textarea class="form-input" id="noticeBodyInput" rows="4" placeholder="নোটিসের বিস্তারিত লেখো" style="resize:vertical;"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ক্যাটাগরি</label>
+        <select class="form-select" id="noticeCategorySelect"></select>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="noticePinCheck" style="width:16px;height:16px;" />
+        <label class="form-label" style="margin:0;" for="noticePinCheck">📌 উপরে পিন করো</label>
+      </div>
+      <button class="post-btn" style="width:100%;padding:11px;font-size:13px;" onclick="submitNotice()">পোস্ট করো</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STUDY: ADD LOST & FOUND MODAL ===== -->
+  <div id="addLostFoundModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeAddLostFoundModal()">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title">🔎 Lost &amp; Found পোস্ট করো</span>
+        <div class="modal-close-btn" onclick="closeAddLostFoundModal()">✕</div>
+      </div>
+      <div style="padding:16px;">
+      <div class="form-group">
+        <label class="form-label">টাইপ</label>
+        <select class="form-select" id="lfTypeSelect">
+          <option value="lost">😢 হারিয়েছে</option>
+          <option value="found">🙌 পাওয়া গেছে</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">শিরোনাম</label>
+        <input type="text" class="form-input" id="lfTitleInput" placeholder="যেমন: একটি কালো মোবাইল হারিয়েছে" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">বিবরণ</label>
+        <textarea class="form-input" id="lfDescInput" rows="3" placeholder="বিস্তারিত লেখো" style="resize:vertical;"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">স্থান (Optional)</label>
+        <input type="text" class="form-input" id="lfLocationInput" placeholder="যেমন: ক্যান্টিনের সামনে" />
+      </div>
+      <button class="post-btn" style="width:100%;padding:11px;font-size:13px;" onclick="submitLostFound()">পোস্ট করো</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STUDY: ADD EVENT MODAL ===== -->
+  <div id="addEventModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeAddEventModal()">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title">🎉 ইভেন্ট যোগ করো</span>
+        <div class="modal-close-btn" onclick="closeAddEventModal()">✕</div>
+      </div>
+      <div style="padding:16px;">
+      <div class="form-group">
+        <label class="form-label">ইভেন্টের নাম</label>
+        <input type="text" class="form-input" id="eventTitleInput" placeholder="যেমন: বার্ষিক সাংস্কৃতিক অনুষ্ঠান" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">বিস্তারিত</label>
+        <textarea class="form-input" id="eventDescInput" rows="3" placeholder="ইভেন্ট সম্পর্কে লেখো" style="resize:vertical;"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ক্যাটাগরি</label>
+        <select class="form-select" id="eventCategorySelect"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">তারিখ</label>
+        <input type="date" class="form-input" id="eventDateInput" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">সময়</label>
+        <input type="time" class="form-input" id="eventTimeInput" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">স্থান (Optional)</label>
+        <input type="text" class="form-input" id="eventVenueInput" placeholder="যেমন: মেইন অডিটোরিয়াম" />
+      </div>
+      <button class="post-btn" style="width:100%;padding:11px;font-size:13px;" onclick="submitEvent()">যোগ করো</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STUDY: UPLOAD NOTE MODAL ===== -->
+  <div id="uploadNoteModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeUploadNoteModal()">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title">📝 নোট আপলোড করো</span>
+        <div class="modal-close-btn" onclick="closeUploadNoteModal()">✕</div>
+      </div>
+      <div style="padding:16px;">
+      <div class="form-group">
+        <label class="form-label">নোটের নাম</label>
+        <input type="text" class="form-input" id="noteTitle" placeholder="যেমন: দ্বিতীয় অধ্যায় — তরঙ্গ" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">বিষয় (Department)</label>
+        <select class="form-select" id="noteDept"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">বিবরণ (Optional)</label>
+        <input type="text" class="form-input" id="noteDesc" placeholder="সংক্ষিপ্ত বিবরণ লিখো" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">ফাইল (PDF/ছবি)</label>
+        <input type="file" class="form-input" id="noteFileInput" accept=".pdf,image/*" />
+      </div>
+      <button class="post-btn" style="width:100%;padding:11px;font-size:13px;" onclick="submitNote()">আপলোড করো</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STUDY: EDIT ROUTINE MODAL ===== -->
+  <div id="editRoutineModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeEditRoutineModal()">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title">🗓️ ক্লাস যোগ করো</span>
+        <div class="modal-close-btn" onclick="closeEditRoutineModal()">✕</div>
+      </div>
+      <div style="padding:16px;">
+      <div class="form-group">
+        <label class="form-label">বার</label>
+        <select class="form-select" id="routineDaySelect"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">শুরুর সময়</label>
+        <input type="time" class="form-input" id="routineStartTime" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">শেষের সময়</label>
+        <input type="time" class="form-input" id="routineEndTime" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">বিষয় (Subject)</label>
+        <select class="form-select" id="routineSubjectSelect"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">রুম নম্বর (Optional)</label>
+        <input type="text" class="form-input" id="routineRoom" placeholder="যেমন: রুম ৩০৫" />
+      </div>
+      <button class="post-btn" style="width:100%;padding:11px;font-size:13px;" onclick="submitRoutineSlot()">যোগ করো</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STUDY: ADD EXAM MODAL ===== -->
+  <div id="addExamModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeAddExamModal()">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title">🗂️ পরীক্ষা যোগ করো</span>
+        <div class="modal-close-btn" onclick="closeAddExamModal()">✕</div>
+      </div>
+      <div style="padding:16px;">
+      <div class="form-group">
+        <label class="form-label">বিষয় (Subject)</label>
+        <select class="form-select" id="examSubjectSelect"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">তারিখ</label>
+        <input type="date" class="form-input" id="examDate" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">সময়</label>
+        <input type="time" class="form-input" id="examTime" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">রুম নম্বর (Optional)</label>
+        <input type="text" class="form-input" id="examRoom" placeholder="যেমন: রুম ২০১" />
+      </div>
+      <button class="post-btn" style="width:100%;padding:11px;font-size:13px;" onclick="submitExam()">যোগ করো</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STUDY: ADD VIDEO MODAL ===== -->
+  <div id="addVideoModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeAddVideoModal()">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title">🎬 ভিডিও লিংক যোগ করো</span>
+        <div class="modal-close-btn" onclick="closeAddVideoModal()">✕</div>
+      </div>
+      <div style="padding:16px;">
+      <div class="form-group">
+        <label class="form-label">ভিডিওর শিরোনাম</label>
+        <input type="text" class="form-input" id="videoTitle" placeholder="যেমন: ত্রিকোণমিতি — পূর্ণ ক্লাস" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">বিষয় (Department)</label>
+        <select class="form-select" id="videoDept"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">YouTube লিংক</label>
+        <input type="text" class="form-input" id="videoUrl" placeholder="https://youtube.com/watch?v=..." />
+      </div>
+      <button class="post-btn" style="width:100%;padding:11px;font-size:13px;" onclick="submitVideo()">যোগ করো</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== EDIT PROFILE MODAL ===== -->
+  <div id="editProfileModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeEditProfile()">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title">প্রোফাইল এডিট করো</span>
+        <div class="modal-close-btn" onclick="closeEditProfile()">✕</div>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">প্রোফাইল ছবি</label>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+            <div class="profile-photo-wrap">
+              <div id="editAvatarPreview" style="width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;"></div>
+              <div class="profile-photo-edit-btn" onclick="document.getElementById('profilePhotoInput').click()">📷</div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:11px;color:var(--muted2);line-height:1.5;">ছবি আপলোড করো বা নিচের avatar বেছে নাও</div>
+              <input type="file" id="profilePhotoInput" class="hidden" accept="image/*" onchange="handleProfilePhoto(event)" />
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">অ্যাভাটার বেছে নাও</label>
+          <div class="avatar-pick-row" id="avatarPickRow"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">নাম</label>
+          <input class="form-input" id="editName" maxlength="40" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">বিভাগ</label>
+          <select class="form-select" id="editDept"></select>
+        </div>
+        <div class="form-group" id="editYearGroup">
+          <label class="form-label">বর্ষ</label>
+          <select class="form-select" id="editYear">
+            <option>১ম বর্ষ</option><option>২য় বর্ষ</option><option>৩য় বর্ষ</option><option>৪র্থ বর্ষ</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">জন্মতারিখ (ঐচ্ছিক) 🎂</label>
+          <input type="date" class="form-input" id="editBirthday" />
+          <div style="font-size:10px;color:var(--muted2);margin-top:4px;">জন্মদিনে তুমি notification পাবে আর বন্ধুরাও জানতে পারবে 🎉</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">বায়ো</label>
+          <textarea class="form-textarea" id="editBio" rows="3" maxlength="160" placeholder="নিজের সম্পর্কে কিছু লেখো..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ব্লাড গ্রুপ</label>
+          <select class="form-select" id="editBlood">
+            <option value="">নির্বাচন করো</option>
+            <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+            <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ফোন (ঐচ্ছিক)</label>
+          <input class="form-input" id="editPhone" placeholder="01XXXXXXXXX" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Facebook লিংক (ঐচ্ছিক)</label>
+          <input class="form-input" id="editFacebook" placeholder="facebook.com/username" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Instagram (ঐচ্ছিক)</label>
+          <input class="form-input" id="editInstagram" placeholder="@username" />
+        </div>
+        <button class="modal-save-btn" onclick="saveProfile()">সেভ করো</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CREATE GROUP MODAL ===== -->
+  <div id="createGroupModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeCreateGroup()">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title">নতুন গ্রুপ তৈরি করো</span>
+        <div class="modal-close-btn" onclick="closeCreateGroup()">✕</div>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">গ্রুপের নাম</label>
+          <input class="form-input" id="newGroupName" placeholder="যেমন: Physics Problem Solvers" maxlength="50" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">বিভাগ</label>
+          <select class="form-select" id="newGroupDept"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">বিবরণ</label>
+          <textarea class="form-textarea" id="newGroupDesc" rows="3" placeholder="গ্রুপের উদ্দেশ্য লেখো..." maxlength="200"></textarea>
+        </div>
+        <button class="modal-save-btn" onclick="createGroup()">গ্রুপ তৈরি করো</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== NEW FRIEND GROUP (multi-friend group message) MODAL ===== -->
+  <div id="newGroupModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeNewGroupModal()">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title">নতুন গ্রুপ মেসেজ</span>
+        <div class="modal-close-btn" onclick="closeNewGroupModal()">✕</div>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">গ্রুপের নাম</label>
+          <input class="form-input" id="newFGroupName" placeholder="যেমন: Assignment Squad" maxlength="40" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">বন্ধুদের বেছে নাও (কমপক্ষে ২ জন)</label>
+          <div id="newFGroupFriendList" style="display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto;"></div>
+        </div>
+        <button class="modal-save-btn" onclick="createFriendGroup()">গ্রুপ মেসেজ শুরু করো</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="commentModalBackdrop" class="comment-modal-backdrop hidden" onclick="if(event.target===this)closeCommentModal()">
+    <div class="comment-modal-sheet" id="commentModalSheet">
+      <div class="comment-modal-header">
+        <div class="comment-modal-handle"></div>
+        <span class="comment-modal-title">মন্তব্যসমূহ</span>
+        <div class="comment-modal-close" onclick="closeCommentModal()">✕</div>
+      </div>
+      <div class="comment-modal-scroll" id="commentModalScroll"></div>
+      <div class="comment-modal-footer" id="commentModalFooter"></div>
+    </div>
+  </div>
+
+  <!-- ===== GENERIC INFO MODAL ===== -->
+  <div id="infoModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeInfoModal()">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <span class="modal-sheet-title" id="infoModalTitle"></span>
+        <div class="modal-close-btn" onclick="closeInfoModal()">✕</div>
+      </div>
+      <div class="modal-body" id="infoModalBody"></div>
+    </div>
+  </div>
+
+  <!-- ===== USER PROFILE MODAL ===== -->
+  <div id="userProfileModal" class="user-profile-modal hidden">
+    <div class="header" style="position:sticky;top:0;z-index:10;">
+      <button class="back-btn" onclick="closeUserProfile()" style="display:flex;align-items:center;gap:6px;color:var(--accent);">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span style="font-size:13px;font-weight:600;">Profile</span>
+      </button>
+    </div>
+    <div id="userProfileContent"></div>
+  </div>
+
+  <!-- ===== STORY VIEWER ===== -->
+  <div id="storyViewer" class="story-viewer hidden">
+    <div class="story-progress-bar" id="storyProgressBar"></div>
+    <div class="story-viewer-header">
+      <div id="storyViewerAvatar" class="avatar" style="width:36px;height:36px;font-size:14px;"></div>
+      <div style="flex:1;margin-left:10px;">
+        <div id="storyViewerName" style="font-size:13px;font-weight:600;color:#fff;"></div>
+        <div id="storyViewerTime" style="font-size:10px;color:rgba(255,255,255,0.6);"></div>
+      </div>
+      <button class="story-close-btn" onclick="closeStoryViewer()" style="position:static;background:rgba(255,255,255,0.2);">✕</button>
+    </div>
+    <div class="story-viewer-content">
+      <div class="story-bubble" id="storyViewerContent"></div>
+    </div>
+
+    <div class="story-reaction-fly" id="storyReactionFly"></div>
+
+    <!-- Reply + quick reactions (shown when viewing someone else's story) -->
+    <div class="story-viewer-footer" id="storyViewerFooterOthers">
+      <div class="story-quick-reacts">
+        <button class="story-react-btn" onclick="reactToStory('❤️')">❤️</button>
+        <button class="story-react-btn" onclick="reactToStory('😂')">😂</button>
+        <button class="story-react-btn" onclick="reactToStory('😮')">😮</button>
+      </div>
+      <div class="story-reply-row">
+        <input id="storyReplyInput" class="story-reply-input" placeholder="Reply পাঠাও..." autocomplete="off" onfocus="pauseStoryTimer()" onblur="resumeStoryTimer()" onkeydown="storyReplyKeydown(event)" />
+        <button class="story-reply-send" onclick="sendStoryReply()">➤</button>
+      </div>
+    </div>
+
+    <!-- View count bar (shown when viewing your own story) -->
+    <div class="story-own-footer hidden" id="storyViewerFooterOwn" onclick="openStoryViewers()">
+      <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      <span id="storyViewCount">0</span> জন দেখেছে
+    </div>
+
+    <!-- Story viewers bottom sheet -->
+    <div class="story-viewers-sheet hidden" id="storyViewersSheet">
+      <div class="story-viewers-sheet-handle"></div>
+      <div class="story-viewers-sheet-title">👁 Story দেখেছে (<span id="storyViewersCount">0</span>)</div>
+      <div id="storyViewersList" class="story-viewers-list"></div>
+      <button class="story-viewers-close-btn" onclick="closeStoryViewers()">বন্ধ করো</button>
+    </div>
+  </div>
+
+  <!-- ===== NOTIFICATIONS OVERLAY ===== -->
+  <div id="notifOverlay" class="overlay-backdrop hidden" onclick="if(event.target===this)closeNotif()">
+    <div class="notif-panel">
+      <div class="notif-panel-header">
+        <span>নোটিফিকেশন</span>
+        <button onclick="markAllRead()">সব পড়া হয়েছে</button>
+      </div>
+      <div id="notifListItems"></div>
+    </div>
+  </div>
+
+  <!-- ===== SEARCH OVERLAY ===== -->
+  <div id="searchOverlay" class="search-overlay hidden">
+    <div class="search-header">
+      <button class="back-btn" onclick="closeSearch()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <input class="search-input" id="searchInput" placeholder="ছাত্র, গ্রুপ বা পোস্ট খোঁজো..." oninput="renderSearchResults()" />
+    </div>
+    <div class="search-tabs">
+      <button class="search-tab active" id="stab-all" onclick="setSearchTab('all')">সব</button>
+      <button class="search-tab" id="stab-users" onclick="setSearchTab('users')">ছাত্র</button>
+      <button class="search-tab" id="stab-groups" onclick="setSearchTab('groups')">গ্রুপ</button>
+      <button class="search-tab" id="stab-posts" onclick="setSearchTab('posts')">পোস্ট</button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ===== V9: CONFIRM DIALOG ===== -->
+  <div id="confirmDialog" class="confirm-dialog hidden" onclick="if(event.target===this)closeConfirmDialog()">
+    <div class="confirm-sheet">
+      <div class="confirm-title" id="confirmTitle">নিশ্চিত করো</div>
+      <div class="confirm-msg" id="confirmMsg">তুমি কি নিশ্চিত?</div>
+      <button class="confirm-btn-danger" id="confirmOkBtn" onclick="doConfirmAction()">হ্যাঁ, নিশ্চিত</button>
+      <button class="confirm-btn-cancel" onclick="closeConfirmDialog()">বাতিল করো</button>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- ====================== AUTH SCREENS ============================= -->
+  <!-- ================================================================ -->
+
+  <!-- MAIN AUTH SCREEN (Login / Register) -->
+  <div id="authScreen" class="auth-screen">
+    <div class="auth-scroll" id="authScroll">
+    <!-- Hero -->
+    <div class="auth-hero">
+      <div class="auth-logo-wrap">DC</div>
+      <div class="auth-hero-title">Debendra Connect</div>
+      <div class="auth-hero-sub">Govt. Debendra College, Manikganj</div>
+      <div class="auth-hero-line"></div>
+    </div>
+
+    <!-- ===== LOGIN SECTION ===== -->
+    <div id="loginSection" class="auth-body auth-section">
+
+      <div class="auth-info-box">
+        <strong>Roll Number</strong>, Gmail এবং Password দিয়ে লগ ইন করো।
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label">Roll / Student ID<span class="req">*</span></label>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">🎫</span>
+          <input class="auth-input" id="loginRoll" type="text" placeholder="যেমন: 2024123" />
+        </div>
+        <div class="auth-error-msg" id="loginRollErr">Roll Number দাও</div>
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label">Gmail<span class="req">*</span></label>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">📧</span>
+          <input class="auth-input" id="loginGmail" type="email" placeholder="example@gmail.com" />
+        </div>
+        <div class="auth-error-msg" id="loginGmailErr">সঠিক Gmail দাও</div>
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label">পাসওয়ার্ড<span class="req">*</span></label>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">🔒</span>
+          <input class="auth-input" id="loginPass" type="password" placeholder="পাসওয়ার্ড দাও" />
+          <button class="auth-input-toggle" onclick="togglePassVis('loginPass',this)">👁️</button>
+        </div>
+        <div class="auth-error-msg" id="loginPassErr">পাসওয়ার্ড দাও</div>
+      </div>
+
+      <div style="text-align:right; margin-bottom:16px; margin-top:-4px;">
+        <button class="auth-link-btn" onclick="showForgotPass()">পাসওয়ার্ড ভুলে গেছি?</button>
+      </div>
+
+      <button class="auth-btn" onclick="doLogin()">
+        <span class="auth-btn-text">লগ ইন করো →</span>
+        <div class="auth-btn-loader"><div class="spinner"></div></div>
+      </button>
+
+      <div class="auth-divider" style="margin-top:22px;">অথবা</div>
+      <button class="auth-btn auth-btn-outline" onclick="showAuthTab('register')">নতুন অ্যাকাউন্ট তৈরি করো</button>
+    </div>
+
+    <!-- ===== REGISTER SECTION ===== -->
+    <div id="registerSection" class="auth-body auth-section hidden">
+
+      <div style="text-align:center; margin-bottom:14px;">
+        <span style="font-size:12px;color:rgba(255,255,255,0.35);">আগে থেকেই অ্যাকাউন্ট আছে? </span>
+        <button class="auth-link-btn" onclick="showAuthTab('login')">লগ ইন করো</button>
+      </div>
+
+      <!-- Step indicator -->
+      <div class="step-indicator" id="regStepIndicator">
+        <div class="step-dot active" id="sdot1">1</div>
+        <div class="step-line" id="sline1"></div>
+        <div class="step-dot" id="sdot2">2</div>
+        <div class="step-line" id="sline2"></div>
+        <div class="step-dot" id="sdot3">3</div>
+      </div>
+      <div style="text-align:center; font-size:11px; color:rgba(255,255,255,0.35); margin-top:8px; margin-bottom:18px; letter-spacing:0.5px;" id="regStepLabel">ধাপ ১ of ৩ — ব্যক্তিগত তথ্য</div>
+
+      <!-- STEP 1: Personal info -->
+      <div id="regStep1">
+        <div class="auth-field">
+          <label class="auth-label">পুরো নাম<span class="req">*</span></label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">👤</span>
+            <input class="auth-input" id="regName" type="text" placeholder="তোমার পুরো নাম লেখো" maxlength="50" />
+          </div>
+          <div class="auth-error-msg" id="regNameErr">নাম দাও (অন্তত ৩ অক্ষর)</div>
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label">Gmail<span class="req">*</span></label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">📧</span>
+            <input class="auth-input" id="regGmail" type="email" placeholder="example@gmail.com" />
+          </div>
+          <div class="auth-error-msg" id="regGmailErr">সঠিক Gmail দাও</div>
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label">তুমি কে?<span class="req">*</span></label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">🧑‍🎓</span>
+            <select class="auth-select" id="regRole" onchange="onRegRoleChange()">
+              <option value="student">শিক্ষার্থী (Student)</option>
+              <option value="cr">CR (ক্লাস রিপ্রেজেন্টেটিভ)</option>
+              <option value="teacher">শিক্ষক (Teacher)</option>
+            </select>
+          </div>
+          <div id="regRoleNote" style="font-size:11px;color:#F4A261;margin-top:4px;"></div>
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label">ডিপার্টমেন্ট<span class="req">*</span></label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">🏫</span>
+            <select class="auth-select" id="regDept">
+              <option value="">ডিপার্টমেন্ট বেছে নাও</option>
+              <option value="bangla">বাংলা</option>
+              <option value="english">ইংরেজি</option>
+              <option value="math">গণিত</option>
+              <option value="physics">পদার্থবিজ্ঞান</option>
+              <option value="chemistry">রসায়ন</option>
+              <option value="biology">জীববিজ্ঞান</option>
+              <option value="history">ইতিহাস</option>
+              <option value="accounting">হিসাববিজ্ঞান</option>
+              <option value="economics">অর্থনীতি</option>
+              <option value="ict">তথ্যপ্রযুক্তি</option>
+            </select>
+          </div>
+          <div class="auth-error-msg" id="regDeptErr">ডিপার্টমেন্ট বেছে নাও</div>
+        </div>
+
+        <div class="auth-field" id="regYearField">
+          <label class="auth-label">বর্ষ<span class="req">*</span></label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">📅</span>
+            <select class="auth-select" id="regYear">
+              <option value="">বর্ষ বেছে নাও</option>
+              <option value="১ম বর্ষ">১ম বর্ষ</option>
+              <option value="২য় বর্ষ">২য় বর্ষ</option>
+              <option value="৩য় বর্ষ">৩য় বর্ষ</option>
+              <option value="৪র্থ বর্ষ">৪র্থ বর্ষ</option>
+            </select>
+          </div>
+          <div class="auth-error-msg" id="regYearErr">বর্ষ বেছে নাও</div>
+        </div>
+
+        <div class="auth-field" id="regRollField">
+          <label class="auth-label">Roll / Student ID<span class="req">*</span></label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">🎫</span>
+            <input class="auth-input" id="regRoll" type="text" placeholder="যেমন: 2024123" />
+          </div>
+          <div class="auth-error-msg" id="regRollErr">Roll Number দাও</div>
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label">🩸 ব্লাড গ্রুপ<span class="req">*</span></label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">🩸</span>
+            <select class="auth-select" id="regBlood">
+              <option value="">ব্লাড গ্রুপ বেছে নাও</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
+          </div>
+          <div class="auth-error-msg" id="regBloodErr">ব্লাড গ্রুপ বেছে নাও (ইমার্জেন্সিতে কাজে লাগবে)</div>
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label">ফোন নাম্বার <span style="font-size:10px;color:var(--muted);">(ঐচ্ছিক)</span></label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">📱</span>
+            <input class="auth-input" id="regPhone" type="tel" placeholder="01XXXXXXXXX" />
+          </div>
+        </div>
+
+        <button class="auth-btn" onclick="regStep1Next()">
+          <span class="auth-btn-text">পরবর্তী ধাপ →</span>
+          <div class="auth-btn-loader"><div class="spinner"></div></div>
+        </button>
+      </div>
+
+      <!-- STEP 2: Password + ID card -->
+      <div id="regStep2" class="hidden">
+        <div class="auth-field">
+          <label class="auth-label">পাসওয়ার্ড<span class="req">*</span></label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">🔒</span>
+            <input class="auth-input" id="regPass" type="password" placeholder="শক্তিশালী পাসওয়ার্ড দাও" oninput="checkPassStrength(this.value)" />
+            <button class="auth-input-toggle" onclick="togglePassVis('regPass',this)">👁️</button>
+          </div>
+          <div class="pass-strength-bar">
+            <div class="pass-seg" id="ps1"></div>
+            <div class="pass-seg" id="ps2"></div>
+            <div class="pass-seg" id="ps3"></div>
+            <div class="pass-seg" id="ps4"></div>
+          </div>
+          <div class="pass-hint" id="passHint">অন্তত ৮ অক্ষর, বড় হাতের, ছোট হাতের, সংখ্যা ও চিহ্ন দাও</div>
+          <div class="auth-error-msg" id="regPassErr">শক্তিশালী পাসওয়ার্ড দাও</div>
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label">পাসওয়ার্ড নিশ্চিত করো<span class="req">*</span></label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">🔐</span>
+            <input class="auth-input" id="regPass2" type="password" placeholder="আবার পাসওয়ার্ড দাও" />
+            <button class="auth-input-toggle" onclick="togglePassVis('regPass2',this)">👁️</button>
+          </div>
+          <div class="auth-error-msg" id="regPass2Err">পাসওয়ার্ড মিলছে না</div>
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label">ID Card / Admission Slip ছবি<span class="req">*</span></label>
+          <div class="auth-file-upload" onclick="document.getElementById('regIdFile').click()">
+            <input type="file" id="regIdFile" accept="image/*" onchange="previewIdCard(event)" style="display:none" />
+            <div class="auth-file-upload-icon">🪪</div>
+            <div class="auth-file-upload-text">ID Card বা Admission Slip এর ছবি আপলোড করো<br><span style="color:var(--accent);font-weight:600;">ক্লিক করে বেছে নাও</span></div>
+          </div>
+          <div class="auth-file-preview" id="idCardPreview">
+            <img id="idCardImg" src="" alt="ID Card" />
+          </div>
+          <div class="auth-error-msg" id="regIdErr">ID Card এর ছবি দাও</div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <button class="auth-btn" onclick="showRegStep(1)" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);box-shadow:none;border:1px solid rgba(255,255,255,0.1);flex:0.5;">← আগের</button>
+          <button class="auth-btn" onclick="regStep2Next()" style="flex:1;">পরবর্তী →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Email OTP -->
+      <div id="regStep3" class="hidden">
+        <div style="text-align:center; margin-bottom:24px;">
+          <div style="font-size:42px; margin-bottom:10px; animation:logoFloat 3s ease-in-out infinite;">📧</div>
+          <div style="font-size:15px; font-weight:700; color:#fff; margin-bottom:6px;">Gmail যাচাই করো</div>
+          <div style="font-size:12px; color:rgba(255,255,255,0.4); line-height:1.6;">
+            <span id="otpEmailDisplay" style="color:#6C63FF; font-weight:700;"></span><br>
+            এই Gmail এ ৬ সংখ্যার কোড পাঠানো হয়েছে
+          </div>
+        </div>
+
+        <div class="otp-row" id="otpInputRow">
+          <input class="otp-digit" maxlength="1" type="number" oninput="otpMove(this,1)" onkeydown="otpBack(event,this,null)" />
+          <input class="otp-digit" maxlength="1" type="number" oninput="otpMove(this,2)" onkeydown="otpBack(event,this,0)" />
+          <input class="otp-digit" maxlength="1" type="number" oninput="otpMove(this,3)" onkeydown="otpBack(event,this,1)" />
+          <input class="otp-digit" maxlength="1" type="number" oninput="otpMove(this,4)" onkeydown="otpBack(event,this,2)" />
+          <input class="otp-digit" maxlength="1" type="number" oninput="otpMove(this,5)" onkeydown="otpBack(event,this,3)" />
+          <input class="otp-digit" maxlength="1" type="number" oninput="otpMove(this,6)" onkeydown="otpBack(event,this,4)" />
+        </div>
+        <div class="auth-error-msg" id="regOtpErr" style="text-align:center;">ভুল কোড! আবার চেষ্টা করো</div>
+
+        <div class="otp-timer">⏱ <span id="otpCountdown">2:00</span></div>
+        <div class="otp-resend">
+          <button class="otp-resend-btn" id="otpResendBtn" onclick="resendOtp()" disabled>কোড আবার পাঠাও</button>
+        </div>
+
+        <button class="auth-btn" onclick="verifyOtp()" style="margin-top:16px;">
+          <span class="auth-btn-text">যাচাই করো ✓</span>
+          <div class="auth-btn-loader"><div class="spinner"></div></div>
+        </button>
+
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <button class="auth-btn" onclick="showRegStep(2)" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);box-shadow:none;border:1px solid rgba(255,255,255,0.1);flex:1;">← আগের ধাপ</button>
+        </div>
+      </div>
+
+    </div><!-- end registerSection -->
+    </div><!-- end auth-scroll -->
+  </div><!-- end authScreen -->
+
+  <!-- FORGOT PASSWORD SCREEN -->
+  <div id="forgotScreen" class="auth-screen hidden">
+    <div class="auth-scroll" id="forgotScroll">
+    <div class="auth-hero" style="padding:40px 28px 28px;">
+      <div class="auth-logo-wrap" style="width:60px;height:60px;font-size:20px;margin-bottom:14px;">🔐</div>
+      <div class="auth-hero-title" style="font-size:20px;">পাসওয়ার্ড ফিরিয়ে আনো</div>
+      <div class="auth-hero-sub">তোমার Gmail ও Roll দিয়ে রিসেট করো</div>
+      <div class="auth-hero-line"></div>
+    </div>
+
+    <!-- forgot step 1: enter gmail+roll -->
+    <div id="forgotStep1" class="auth-body auth-section">
+      <div class="auth-info-box">
+        তোমার <strong>Gmail</strong> ও <strong>Roll Number</strong> দাও। সেই Gmail এ পাসওয়ার্ড রিসেট কোড পাঠানো হবে।
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label">Gmail<span class="req">*</span></label>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">📧</span>
+          <input class="auth-input" id="fpGmail" type="email" placeholder="example@gmail.com" />
+        </div>
+        <div class="auth-error-msg" id="fpGmailErr">সঠিক Gmail দাও</div>
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label">Roll / Student ID<span class="req">*</span></label>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">🎫</span>
+          <input class="auth-input" id="fpRoll" type="text" placeholder="যেমন: 2024123" />
+        </div>
+        <div class="auth-error-msg" id="fpRollErr">Roll Number দাও</div>
+      </div>
+
+      <button class="auth-btn" onclick="fpSendOtp()">
+        <span class="auth-btn-text">কোড পাঠাও →</span>
+        <div class="auth-btn-loader"><div class="spinner"></div></div>
+      </button>
+      <div style="text-align:center;margin-top:16px;">
+        <button class="auth-link-btn" onclick="backToLogin()">← লগ ইন এ ফিরে যাও</button>
+      </div>
+    </div>
+
+    <!-- forgot step 2: OTP -->
+    <div id="forgotStep2" class="auth-body auth-section hidden">
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="font-size:42px; margin-bottom:10px; animation:logoFloat 3s ease-in-out infinite;">🔑</div>
+        <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px;">OTP যাচাই করো</div>
+        <div style="font-size:12px; color:rgba(255,255,255,0.4); line-height:1.6;">
+          <span id="fpEmailDisplay" style="color:#6C63FF; font-weight:700;"></span><br>
+          এই Gmail এ কোড পাঠানো হয়েছে
+        </div>
+      </div>
+
+      <div class="otp-row" id="fpOtpRow">
+        <input class="otp-digit" maxlength="1" type="number" oninput="fpOtpMove(this,1)" onkeydown="fpOtpBack(event,this,null)" />
+        <input class="otp-digit" maxlength="1" type="number" oninput="fpOtpMove(this,2)" onkeydown="fpOtpBack(event,this,0)" />
+        <input class="otp-digit" maxlength="1" type="number" oninput="fpOtpMove(this,3)" onkeydown="fpOtpBack(event,this,1)" />
+        <input class="otp-digit" maxlength="1" type="number" oninput="fpOtpMove(this,4)" onkeydown="fpOtpBack(event,this,2)" />
+        <input class="otp-digit" maxlength="1" type="number" oninput="fpOtpMove(this,5)" onkeydown="fpOtpBack(event,this,3)" />
+        <input class="otp-digit" maxlength="1" type="number" oninput="fpOtpMove(this,6)" onkeydown="fpOtpBack(event,this,4)" />
+      </div>
+      <div class="auth-error-msg" id="fpOtpErr" style="text-align:center;">ভুল কোড!</div>
+
+      <div class="otp-timer">⏱ <span id="fpCountdown">2:00</span></div>
+      <div class="otp-resend">
+        <button class="otp-resend-btn" id="fpResendBtn" onclick="fpResendOtp()" disabled>কোড আবার পাঠাও</button>
+      </div>
+
+      <button class="auth-btn" onclick="fpVerifyOtp()" style="margin-top:16px;">
+        <span class="auth-btn-text">যাচাই করো ✓</span>
+        <div class="auth-btn-loader"><div class="spinner"></div></div>
+      </button>
+    </div>
+
+    <!-- forgot step 3: new password -->
+    <div id="forgotStep3" class="auth-body auth-section hidden">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:42px; margin-bottom:10px; animation:logoFloat 3s ease-in-out infinite;">🔐</div>
+        <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">নতুন পাসওয়ার্ড</div>
+        <div style="font-size:12px; color:rgba(255,255,255,0.4);">শক্তিশালী পাসওয়ার্ড দাও</div>
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label">নতুন পাসওয়ার্ড<span class="req">*</span></label>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">🔒</span>
+          <input class="auth-input" id="fpNewPass" type="password" placeholder="নতুন পাসওয়ার্ড" oninput="checkPassStrength2(this.value)" />
+          <button class="auth-input-toggle" onclick="togglePassVis('fpNewPass',this)">👁️</button>
+        </div>
+        <div class="pass-strength-bar">
+          <div class="pass-seg" id="fps1"></div>
+          <div class="pass-seg" id="fps2"></div>
+          <div class="pass-seg" id="fps3"></div>
+          <div class="pass-seg" id="fps4"></div>
+        </div>
+        <div class="pass-hint" id="passHint2">অন্তত ৮ অক্ষর, বড়-ছোট হাতের, সংখ্যা ও চিহ্ন দাও</div>
+        <div class="auth-error-msg" id="fpPassErr">শক্তিশালী পাসওয়ার্ড দাও</div>
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label">পাসওয়ার্ড নিশ্চিত করো<span class="req">*</span></label>
+        <div class="auth-input-wrap">
+          <span class="auth-input-icon">🔐</span>
+          <input class="auth-input" id="fpNewPass2" type="password" placeholder="আবার পাসওয়ার্ড" />
+          <button class="auth-input-toggle" onclick="togglePassVis('fpNewPass2',this)">👁️</button>
+        </div>
+        <div class="auth-error-msg" id="fpPass2Err">পাসওয়ার্ড মিলছে না</div>
+      </div>
+
+      <button class="auth-btn" onclick="fpSavePass()">
+        <span class="auth-btn-text">পাসওয়ার্ড পরিবর্তন করো ✓</span>
+        <div class="auth-btn-loader"><div class="spinner"></div></div>
+      </button>
+    </div>
+
+    <!-- forgot success -->
+    <div id="forgotSuccess" class="auth-body hidden">
+      <div class="auth-success">
+        <div class="success-circle">✓</div>
+        <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:8px;">পাসওয়ার্ড পরিবর্তন হয়েছে!</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:28px;line-height:1.6;">এখন নতুন পাসওয়ার্ড দিয়ে লগ ইন করো।</div>
+        <button class="auth-btn" onclick="backToLogin()" style="max-width:220px;">লগ ইন করো →</button>
+      </div>
+    </div>
+  </div><!-- end auth-scroll -->
+  </div><!-- end forgotScreen -->
+
+  <!-- PENDING APPROVAL SCREEN (shown after CR/Teacher registers) -->
+  <div id="pendingApprovalScreen" class="auth-screen hidden">
+    <div class="auth-body">
+      <div class="auth-success">
+        <div class="success-circle" style="background:linear-gradient(135deg,#F4A261,#F77F00);">⏳</div>
+        <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:8px;">অ্যাকাউন্ট তৈরি হয়েছে!</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:28px;line-height:1.6;">তোমার অ্যাকাউন্টটি এখন Admin Approval এর অপেক্ষায় আছে। Admin অনুমোদন করার পর তুমি লগইন করতে পারবে। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করো।</div>
+        <button class="auth-btn" onclick="backToLoginFromPending()" style="max-width:240px;">লগ ইন স্ক্রিনে ফিরে যাও →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/state.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/account-ui.js"></script>
+<script src="js/chat-info.js"></script>
+<script src="js/stories-notifications.js"></script>
+<script src="js/search-feed.js"></script>
+<script src="js/post-interactions.js"></script>
+<script src="js/messages.js"></script>
+<script src="js/groups.js"></script>
+<script src="js/friends-profile.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/study.js"></script>
+<script src="js/init.js"></script>
+</body>
+</html>
